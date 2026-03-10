@@ -12,3 +12,5 @@ from .aperture_from_image import ApertureFromImage
 from .aperture_from_function import ApertureFromFunction
 
 from .SLM import SLM
+from .AG_reflect import AG_Reflect
+from .micro_lens import MicroLens

@@ -14,7 +14,7 @@ All rights reserved.
 
 def plot_intensity(self, I, square_root = False, figsize=(7, 6), 
                   xlim=None, ylim=None, grid = False, text = None, units = mm,
-                  slice_y_pos = None, slice_x_pos = None, dark_background = False):
+                  slice_y_pos = None, slice_x_pos = None, dark_background = False, colormap = 'inferno'):
     """visualize the diffraction pattern intesity with matplotlib"""
     
     from ..util.backend_functions import backend as bd
@@ -84,7 +84,7 @@ def plot_intensity(self, I, square_root = False, figsize=(7, 6),
 
 
     im = ax.imshow(
-        I, cmap= 'inferno',
+        I, cmap= colormap,
         extent=[  # the center of each pixel is exactly the point where the intensity is evaluated
             float(self.x[0] - self.dx/2) / units,
             float(self.x[-1] + self.dx/2) / units,
@@ -98,9 +98,9 @@ def plot_intensity(self, I, square_root = False, figsize=(7, 6),
     cb = fig.colorbar(im, orientation = 'vertical')
 
     if square_root == False:
-        cb.set_label(r'Intensity $\left[W / m^2 \right]$', fontsize=10, labelpad =  10 )
+        cb.set_label(r'Intensity $\left[nit / m^2 \right]$', fontsize=10, labelpad =  10 )
     else:
-        cb.set_label(r'Square Root Intensity $\left[ \sqrt{W / m^2 } \right]$', fontsize=10, labelpad =  10 )
+        cb.set_label(r'Square Root Intensity $\left[ \sqrt{nit / m^2 } \right]$', fontsize=10, labelpad =  10 )
     ax.set_aspect('equal')
     
 
@@ -119,7 +119,7 @@ def plot_intensity(self, I, square_root = False, figsize=(7, 6),
             y = self.y
 
         ax_slice.plot(x/units, I[np.argmin(abs(y-slice_y_pos)),:]**2)
-        ax_slice.set_ylabel(r'Intensity $\left[W / m^2 \right]$')
+        ax_slice.set_ylabel(r'Intensity $\left[nit / m^2 \right]$')
 
         if grid == True:
             ax_slice.grid(alpha =0.2)
@@ -152,7 +152,7 @@ def plot_intensity(self, I, square_root = False, figsize=(7, 6),
             y = self.y
 
         ax_slice.plot(y/units, I[:, np.argmin(abs(x-slice_x_pos))]**2)
-        ax_slice.set_ylabel(r'Intensity $\left[W / m^2 \right]$')
+        ax_slice.set_ylabel(r'Intensity $\left[nit / m^2 \right]$')
 
         if grid == True:
             ax_slice.grid(alpha =0.2)
