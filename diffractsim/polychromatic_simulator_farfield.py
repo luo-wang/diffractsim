@@ -5,7 +5,7 @@ from scipy.interpolate import interp2d
 from pathlib import Path
 from PIL import Image
 import time
-from .propagation_methods import angular_spectrum_method, two_steps_fresnel_method, apply_transfer_function
+from .propagation_methods import angular_spectrum_method, two_steps_fresnel_method, apply_transfer_function, fraunhofer_method
 
 import numpy as np
 from .util.backend_functions import backend as bd
@@ -32,7 +32,7 @@ class PolychromaticFieldFar:
 
         self.dx = extent_x/Nx
         self.dy = extent_y/Ny
-
+        self.dx0 = self.dx
         self.x = self.dx*(bd.arange(Nx)-Nx//2)
         self.y = self.dy*(bd.arange(Ny)-Ny//2)
         self.xx, self.yy = bd.meshgrid(self.x, self.y)
@@ -75,7 +75,7 @@ class PolychromaticFieldFar:
         """compute the field in distance equal to z with the angular spectrum method"""
         self.z += z
 
-        self.steps += [angular_spectrum_method]
+        self.steps += [fraunhofer_method]
         self.number_of_propagations += 1
         self.steps_type += ['propagation']
 
@@ -118,10 +118,13 @@ class PolychromaticFieldFar:
 
                     z, scale_factor = self.steps_args[j]
 
-                    E_λ = self.steps[j](self, E_λ, z, self.λ_list_samples[i]* nm, scale_factor)
+                    E_λ = self.steps[j](self, E_λ, z, self.λ_list_samples[i]* nm,)
 
                     if propagation_index[i] == self.number_of_propagations:
                         Iλ = bd.real(E_λ * bd.conjugate(E_λ))
+                        # plt.figure();plt.imshow(Iλ, cmap='gray');plt.colorbar();plt.title('Intensity distribution for λ = ' + str(self.λ_list_samples[i]) + ' nm');plt.show()
+
+                        # Iλ = Iλ**0.4
                         XYZ = self.cs.spec_partition_to_XYZ(bd.outer(Iλ, self.spec_partitions[i]),i)
                         sRGB_linear += self.cs.XYZ_to_sRGB_linear(XYZ)
 

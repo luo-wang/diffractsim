@@ -205,7 +205,7 @@ class SparkleSimulator:
         self.prop2AG(n_AG, -z_AG, n_OCA, -z_OCA, n_OLED, -z_OLED)
         self.Iorigin = bd.abs(self.E) ** 2
 
-        print("Sparkle origin enerage(unfiltered): ", bd.sum(self.Iorigin)* self.dx * self.dy)
+        # print("Sparkle origin enerage(unfiltered): ", bd.sum(self.Iorigin)* self.dx * self.dy)
         return self.Iorigin
 
     #
@@ -332,7 +332,7 @@ class SparkleSimulator:
         print("Sparkle enerage(SIM filtered): ", bd.sum(I_sparkle_SIM) * self.dx * self.dy)
         ## 截掉周围一个像素区域
         I_sparkle_SIM = I_sparkle_SIM[Nx_box:-Nx_box, Ny_box:-Ny_box]
-        self.plot_intensity(I_sparkle_SIM, square_root=False, units=um, text="I_sparkle_SIM (filtered & cropped)",colormap = 'gray')
+        # self.plot_intensity(I_sparkle_SIM, square_root=False, units=um, text="I_sparkle_SIM (filtered & cropped)",colormap = 'gray')
         mean_I = bd.mean(I_sparkle_SIM)
         std_I = bd.std(I_sparkle_SIM)
 
@@ -432,7 +432,7 @@ class SparkleSimulator:
 
         ## 截掉周围一个像素区域
         I_sparkle_DIM = I_sparkle_DIM[Nx_box:-Nx_box, Ny_box:-Ny_box]
-        self.plot_intensity(I_sparkle_DIM, square_root=False, units=um, text="I_sparkle_DIM (filtered & cropped)",colormap = 'gray')
+        # self.plot_intensity(I_sparkle_DIM, square_root=False, units=um, text="I_sparkle_DIM (filtered & cropped)",colormap = 'gray')
         mean_I = bd.mean(I1)
         std_I = bd.std(I_sparkle_DIM)
         self.SparkValue = std_I / mean_I
@@ -440,6 +440,18 @@ class SparkleSimulator:
 
         return None
 
+
+    def VisualPhoto(self,sigma,):
+
+        sigmax_pixel = sigma / self.dx
+        sigmay_pixel = sigma / self.dy
+        I_visual = gaussian_filter(self.Iorigin, sigma=(sigmax_pixel, sigmay_pixel), mode='reflect')
+        #处理一下让最小值为0方便绘图
+        I_visual[0] = 0.0
+        ## gamma视觉响应
+        # I_visual = I_visual**0.4
+
+        return I_visual
 
 
 

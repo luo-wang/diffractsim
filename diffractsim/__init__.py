@@ -14,3 +14,4 @@ from .light_sources import *
 from .util.constants import *
 from .sparkle_simulator import SparkleSimulator
 from .colorpattern_simulator import ColorpatternSimulator
+from .polychromatic_simulator_farfield import PolychromaticFieldFar

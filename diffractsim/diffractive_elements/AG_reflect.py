@@ -15,7 +15,7 @@ class AG_Reflect(DOE):
         self.height = height
         self.x0 = x0
         self.y0 = y0
-        self.sag = sag
+        self.sag = sag.T
         self.n = n
 
 

@@ -15,6 +15,8 @@ from .visualization import plot_intensity
 from diffractsim import PolychromaticField, cf, mm, cm, CircularAperture, GaussianBeam
 from diffractsim import AG_Reflect
 
+from .polychromatic_simulator_farfield import PolychromaticFieldFar
+
 class ColorpatternSimulator:
     def __init__(self, spectrum, extent_x, extent_y, Nx, Ny, Saperture=0):
         '''
@@ -44,7 +46,8 @@ class ColorpatternSimulator:
 
     def DoSimulate(self, z_LighttoAG, AGetch_params):
 
-        F = PolychromaticField(spectrum=self.spectrum, extent_x=self.extent_x,extent_y=self.extent_y, Nx=self.Nx, Ny=self.Ny)
+        F = PolychromaticFieldFar(spectrum=self.spectrum, extent_x=self.extent_x,extent_y=self.extent_y, Nx=self.Nx, Ny=self.Ny,spectrum_divisions = 10)
+        # F = PolychromaticField(spectrum=self.spectrum, extent_x=self.extent_x, extent_y=self.extent_y, Nx=self.Nx, Ny=self.Ny, spectrum_divisions=10)
         width = AGetch_params['width']
         height = AGetch_params['height']
         sag = AGetch_params['sag']
@@ -54,7 +57,7 @@ class ColorpatternSimulator:
         # rgb = F.get_colors()
         # F.plot_colors(rgb)
 
-        F.propagate(z_LighttoAG)
+        # F.propagate(z_LighttoAG)
         # rgb = F.get_colors()
         # F.plot_colors(rgb)
 
@@ -63,7 +66,7 @@ class ColorpatternSimulator:
         # rgb = F.get_colors()
         # F.plot_colors(rgb)
 
-        F.propagate(-z_LighttoAG)
+        F.propagate(z_LighttoAG)
         rgb = F.get_colors()
         F.plot_colors(rgb)
 
