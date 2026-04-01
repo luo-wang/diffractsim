@@ -23,7 +23,7 @@ E_B = B_array.get_E(1.0,xx,yy,λ=500*nm)
 # 合成 RGB 光场
 E = bd.sqrt(E_R**2 + E_G**2 + E_B**2)
 # 可视化结果
-plt.imshow(E_G.get(), extent=(-500, 500, -500, 500), origin='lower', cmap='gray')
+plt.imshow(E_B.get(), extent=(-500, 500, -500, 500), origin='lower', cmap='gray')
 plt.colorbar(label='Electric Field Amplitude')
 plt.title('Pixel Array Light Source')
 plt.xlabel('x')

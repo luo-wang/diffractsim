@@ -41,7 +41,7 @@ class SparkleSimulator:
         self.z = 0
         self.cs = cf.ColourSystem(clip_method=0)
 
-    def add_RGB(self, spectrum = 'B', intensity=1.0 * W / m**2):
+    def add_RGB(self, spectrum = 'G', intensity=1.0 * W / m**2):
         """
         add RGB light source
         Parameters
@@ -65,7 +65,7 @@ class SparkleSimulator:
         # self.mask[(bd.abs(self.xx) <= self.pixelperiodx / 2) &
         #           (bd.abs(self.yy) <= self.pixelperiody / 2)] = 1.0
 
-    def prop2AG(self, n_OLED, z_OLED, n_OCA, z_OCA, n_AG, z_AG):
+    def prop2AG1(self, n_OLED, z_OLED, n_OCA, z_OCA, n_AG, z_AG):
         """
         propagate through the layers to the AG glass
         Parameters
@@ -123,6 +123,65 @@ class SparkleSimulator:
 
         self.E = bd.fft.ifft2(bd.fft.ifftshift(Ef_AG))
 
+    def prop2AG(self, n_OLED, z_OLED, n_OCA, z_OCA, n_AG, z_AG):
+        """
+        Propagate optical field through multilayer structure using angular spectrum method
+        with Fresnel transmission at interfaces.
+
+        Parameters
+        ----------
+        n_OLED : float
+        z_OLED : float
+        n_OCA  : float
+        z_OCA  : float
+        n_AG   : float
+        z_AG   : float
+        """
+
+        # ---------- FFT ----------
+        Ef = bd.fft.fftshift(bd.fft.fft2(self.E))
+
+        # self.plot_intensity(bd.abs(Ef)**2, square_root=False, units=um,text='frequency spectrum ')
+        # ---------- frequency grid ----------
+        fx = bd.fft.fftshift(bd.fft.fftfreq(self.Nx, d=self.dx))
+        fy = bd.fft.fftshift(bd.fft.fftfreq(self.Ny, d=self.dy))
+        fxx, fyy = bd.meshgrid(fx, fy)
+
+        # ---------- wavevector ----------
+        k0 = 2 * bd.pi / self.wavelength
+        kx = 2 * bd.pi * fxx
+        ky = 2 * bd.pi * fyy
+
+        # ---------- layer structure ----------
+        layers = [
+            (n_OLED, z_OLED),
+            (n_OCA, z_OCA),
+            (n_AG, z_AG),
+        ]
+
+        # 默认入射介质（OLED前一层），一般是空气
+        n_prev = 1.0
+
+        for n, z in layers:
+            # ---------- kz（允许复数 → evanescent 自动衰减） ----------
+            kz_prev = bd.sqrt((n_prev * k0) ** 2 - kx ** 2 - ky ** 2 + 0j)
+            kz = bd.sqrt((n * k0) ** 2 - kx ** 2 - ky ** 2 + 0j)
+
+            # ---------- Fresnel transmission（标量近似，未区分偏振） ----------
+            # 避免除0
+            denom = (n_prev * kz_prev + n * kz) + 1e-12
+            # t = 2 * n_prev * kz_prev / denom
+
+            # ---------- 传播 ----------
+            Ef = Ef  * bd.exp(1j * kz * z)
+
+            # ---------- 更新 ----------
+            n_prev = n
+            self.z += z
+
+        # ---------- IFFT ----------
+        self.E = bd.fft.ifft2(bd.fft.ifftshift(Ef))
+
     def propAGetch(self,width, height, sag, n_AG, xyorigin=[0.,0.]):
         """
         progate through the AG etch layer: use fourier optice: convert to phase
@@ -152,6 +211,8 @@ class SparkleSimulator:
             sag_np = sag
             y_np = self.y
             x_np = self.x
+
+        sag_np = sag_np-np.min(sag_np)
         interp = RectBivariateSpline(y0, x0, sag_np, kx=3, ky=3)
         sag_interp = interp(y_np, x_np)
 
@@ -199,8 +260,8 @@ class SparkleSimulator:
         xyorigin = AGetch_params['xyorigin']
         self.propAGetch(width, height, sag, n_AG, xyorigin=xyorigin )
 
-        # self.plot_intensity(bd.abs(self.E)**2, square_root=False, units=um,text='Intensity after AG etch layer')
-        # self.plot_phase(self.E, units=um, text='Phase after AG etch layer')
+        self.plot_intensity(bd.abs(self.E)**2, square_root=False, units=um,text='Intensity after AG etch layer')
+        self.plot_phase(self.E, units=um, text='Phase after AG etch layer')
         ## inverse propagate to RGB layer
         self.prop2AG(n_AG, -z_AG, n_OCA, -z_OCA, n_OLED, -z_OLED)
         self.Iorigin = bd.abs(self.E) ** 2
@@ -265,13 +326,13 @@ class SparkleSimulator:
 
         I = self.Iorigin
 
-        # ==============================
-        # # 1. 空间域 box 滤波（关键改动）
-        # ==============================
-        # box 尺寸（以像素为单位）
+        # # ==============================
+        # # # 1. 空间域 box 滤波（关键改动）
+        # # ==============================
+        # # box 尺寸（以像素为单位）
         Nx_box = int(round(self.pixelperiodx / self.dx))*1
         Ny_box = int(round(self.pixelperiody / self.dy))*1
-
+        #
         # if Nx_box % 2 == 0:
         #     Nx_box += 1
         # if Ny_box % 2 == 0:
@@ -283,7 +344,7 @@ class SparkleSimulator:
         I_sparkle_SIM = scipy.signal.convolve2d(
             I, kernel, mode="same", boundary="symm"
         )
-
+        #
         # self.plot_intensity(
         #     I_sparkle_SIM,
         #     square_root=False,
@@ -332,7 +393,7 @@ class SparkleSimulator:
         print("Sparkle enerage(SIM filtered): ", bd.sum(I_sparkle_SIM) * self.dx * self.dy)
         ## 截掉周围一个像素区域
         I_sparkle_SIM = I_sparkle_SIM[Nx_box:-Nx_box, Ny_box:-Ny_box]
-        # self.plot_intensity(I_sparkle_SIM, square_root=False, units=um, text="I_sparkle_SIM (filtered & cropped)",colormap = 'gray')
+        self.plot_intensity(I_sparkle_SIM, square_root=False, units=um, text="I_sparkle_SIM (filtered & cropped)",colormap = 'gray')
         mean_I = bd.mean(I_sparkle_SIM)
         std_I = bd.std(I_sparkle_SIM)
 
@@ -405,6 +466,21 @@ class SparkleSimulator:
         #     colormap = 'gray',
         # )
 
+        # ##  1. 空间域高斯滤波（关键改动）
+        # # ==============================
+        # # sigma_x, sigma_y 以像素为单位
+        # sigma_x = self.pixelperiodx / (2 * self.dx)  # 一半像素周期
+        # sigma_y = self.pixelperiody / (2 * self.dy)
+        #
+        # I_sparkle_DIM = gaussian_filter(
+        #     diffI,
+        #     sigma=(sigma_y, sigma_x),
+        #     mode='reflect'  # 边缘镜像平滑
+        # )
+        # self.plot_intensity(I_sparkle_DIM, square_root=False, units=um,text="I_sparkle_DIM (Gaussian filtered, spatial domain)")
+        #
+
+
 
         # ==============================
         # 2. FFT 仅用于诊断（可选）
@@ -432,7 +508,7 @@ class SparkleSimulator:
 
         ## 截掉周围一个像素区域
         I_sparkle_DIM = I_sparkle_DIM[Nx_box:-Nx_box, Ny_box:-Ny_box]
-        # self.plot_intensity(I_sparkle_DIM, square_root=False, units=um, text="I_sparkle_DIM (filtered & cropped)",colormap = 'gray')
+        self.plot_intensity(I_sparkle_DIM, square_root=False, units=um, text="I_sparkle_DIM (filtered & cropped)",colormap = 'gray')
         mean_I = bd.mean(I1)
         std_I = bd.std(I_sparkle_DIM)
         self.SparkValue = std_I / mean_I
@@ -445,7 +521,10 @@ class SparkleSimulator:
 
         sigmax_pixel = sigma / self.dx
         sigmay_pixel = sigma / self.dy
+        CNx = int(round(sigmax_pixel))
+        CNy = int(round(sigmay_pixel))
         I_visual = gaussian_filter(self.Iorigin, sigma=(sigmax_pixel, sigmay_pixel), mode='reflect')
+        I_visual = I_visual[CNx:-CNx, CNy:-CNy]
         #处理一下让最小值为0方便绘图
         I_visual[0] = 0.0
         ## gamma视觉响应
@@ -510,93 +589,65 @@ class SparkleSimulator:
 
     @staticmethod
     def jetimg2sag(image_path, v_min, v_max):
-        """
-        convert an image to a sag profile
-        Parameters
-        ----------
-        image: 2D array
-            grayscale image
-        sag_mean: float
-            average sag value
-
-        Returns
-        -------
-        sag: 2D array
-            sag profile
-
-        """
-
         import numpy as np
         from PIL import Image
         import matplotlib.pyplot as plt
+        from scipy.spatial import cKDTree
 
-        # =========================
-        # 1. 参数设置（你需要改的地方）
-        # =========================
+        N_COLORS = 256
 
-        N_COLORS = 256  # jet 采样数（256 已经够用）
-
-        # =========================
-        # 2. 读取图片
-        # =========================
-
+        # 1. 读图
         img = Image.open(image_path).convert("RGB")
-        img = np.asarray(img, dtype=np.float32) / 255.0  # (H, W, 3)
+        img = np.asarray(img, dtype=np.float32) / 255.0
         H, W, _ = img.shape
-
         print(f"Etch Image loaded: {H} x {W}")
 
-        # =========================
-        # 3. 构建 jet colormap 查找表
-        # =========================
-
-        # jet = cm.get_cmap("jet", N_COLORS)
-
+        # 2. jet colormap
         jet = plt.get_cmap("jet", N_COLORS)
-        jet_rgb = jet(np.linspace(0.0, 1.0, N_COLORS))[:, :3]  # (N, 3)
+        jet_rgb = jet(np.linspace(0.0, 1.0, N_COLORS))[:, :3]
 
-        # =========================
-        # 4. RGB → jet 索引 → 归一化值
-        # =========================
+        # 3. 构建KDTree
+        tree = cKDTree(jet_rgb)
 
-        # 展平图片
-        img_flat = img.reshape(-1, 3)  # (H*W, 3)
+        # 4. 查询最近颜色
+        img_flat = img.reshape(-1, 3)
+        _, idx = tree.query(img_flat, k=1)
 
-        # 计算 RGB 距离
-        # (H*W, N, 3) → (H*W, N)
-        diff = img_flat[:, None, :] - jet_rgb[None, :, :]
-        dist = np.linalg.norm(diff, axis=2)
-
-        # 找到最接近的 jet 颜色索引
-        idx = np.argmin(dist, axis=1)
-
-        # 归一化到 [0, 1]
+        # 5. 归一化
         value_norm = idx.astype(np.float32) / (N_COLORS - 1)
         value_norm = (value_norm - value_norm.min()) / (value_norm.max() - value_norm.min())
-
-        # print(value_norm.min(), value_norm.max())
-        # 还原二维
         value_norm = value_norm.reshape(H, W)
 
-        # =========================
-        # 5. 映射到真实物理范围
-        # =========================
-
+        # 6. 映射物理量
         value = v_min + value_norm * (v_max - v_min)
-
-        # # =========================
-        # # 6. 可视化检查（强烈建议保留）
-        # # =========================
-        #
-        # plt.figure(figsize=(6, 5))
-        # plt.imshow(value, cmap="jet")
-        # plt.colorbar(label="Recovered value")
-        # plt.title("Recovered 2D scalar field")
-        # plt.tight_layout()
-        # plt.show()
 
         return value
 
+
+    @staticmethod
+    def mosaic_array(sag, N):
+        """
+        将二维数组sag在行和列方向上分别拼接N次，形成更大的数组
+
+        参数:
+            sag: 输入的二维数组
+            N: 每个维度拼接的次数，可以是整数或二元组
+               如果N是整数，则在行和列方向都拼接N次
+               如果N是二元组 (N_rows, N_cols)，则分别指定行和列的拼接次数
+
+        返回:
+            拼接后的大数组
+        """
+        # 处理N参数
+        if isinstance(N, (int, float)):
+            N_rows = N_cols = int(N)
+        elif isinstance(N, (tuple, list)) and len(N) == 2:
+            N_rows, N_cols = int(N[0]), int(N[1])
+        else:
+            raise ValueError("N必须是整数或长度为2的元组/列表")
+
+        # 使用numpy的tile函数进行拼接
+        return bd.tile(sag, (N_rows, N_cols))
 
     from .visualization import plot_colors, plot_phase, plot_intensity, plot_longitudinal_profile_colors, \
         plot_longitudinal_profile_intensity, plot_farfield, plot_farfield_spherical_coordinates

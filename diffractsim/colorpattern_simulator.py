@@ -13,7 +13,7 @@ from .util.backend_functions import backend_name
 from .light_sources.RGB_array import RGBarray
 from .visualization import plot_intensity
 from diffractsim import PolychromaticField, cf, mm, cm, CircularAperture, GaussianBeam
-from diffractsim import AG_Reflect
+from diffractsim import AG_Reflect,Lens
 
 from .polychromatic_simulator_farfield import PolychromaticFieldFar
 
@@ -51,6 +51,8 @@ class ColorpatternSimulator:
         width = AGetch_params['width']
         height = AGetch_params['height']
         sag = AGetch_params['sag']
+        ## 添加球面相位
+        F.add(Lens(f=z_LighttoAG))
 
         # F.add(CircularAperture(self.Saperture))
         # F.add(GaussianBeam(0.1*mm))
