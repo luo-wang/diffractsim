@@ -41,7 +41,7 @@ class SparkleSimulator:
         self.z = 0
         self.cs = cf.ColourSystem(clip_method=0)
 
-    def add_RGB(self, spectrum = 'G', intensity=1.0 * W / m**2):
+    def add_RGB(self, spectrum = 'G', intensity=1.0 * W / m**2,div=1,effective_area=1):
         """
         add RGB light source
         Parameters
@@ -56,16 +56,17 @@ class SparkleSimulator:
         rgbarray = RGBarray(spectrum=spectrum)
         self.pixelperiodx = rgbarray.x_period
         self.pixelperiody = rgbarray.y_period
-        self.E = rgbarray.get_E(intensity, self.xx, self.yy, self.wavelength)
+        self.E = rgbarray.get_E(intensity, self.xx, self.yy, self.wavelength,div, effective_area)
         I = bd.abs(self.E) ** 2
         print("Initial enerage: ", bd.sum(I)* self.dx * self.dy)
         self.plot_intensity(I, square_root=False, units=um, text='Intensity at RGB layer',colormap = 'gray')
+        # self.plot_phase(self.E,units=um,text='phase at RGB layer')
         # self.mask = bd.zeros_like(self.E)
         #
         # self.mask[(bd.abs(self.xx) <= self.pixelperiodx / 2) &
         #           (bd.abs(self.yy) <= self.pixelperiody / 2)] = 1.0
 
-    def prop2AG1(self, n_OLED, z_OLED, n_OCA, z_OCA, n_AG, z_AG):
+    def prop2AG(self, n_OLED, z_OLED, n_OCA, z_OCA, n_AG, z_AG):
         """
         propagate through the layers to the AG glass
         Parameters
@@ -123,7 +124,7 @@ class SparkleSimulator:
 
         self.E = bd.fft.ifft2(bd.fft.ifftshift(Ef_AG))
 
-    def prop2AG(self, n_OLED, z_OLED, n_OCA, z_OCA, n_AG, z_AG):
+    def prop2AG1(self, n_OLED, z_OLED, n_OCA, z_OCA, n_AG, z_AG):
         """
         Propagate optical field through multilayer structure using angular spectrum method
         with Fresnel transmission at interfaces.
@@ -225,7 +226,7 @@ class SparkleSimulator:
 
 
 
-    def get_Sparkle_origin(self, spectrum, layer_Structure, AGetch_params, intensity = 1.0 * W / m**2, ):
+    def get_Sparkle_origin(self, spectrum, layer_Structure, AGetch_params, intensity = 1.0 * W / m**2, div = 45, effective_area = 1):
         """
         get the origin sparkle pattern through inverse propagation to the RGB layer
         Parameters
@@ -244,7 +245,7 @@ class SparkleSimulator:
 
         """
 
-        self.add_RGB(spectrum, intensity)
+        self.add_RGB(spectrum, intensity,div,effective_area)
         ## propagate to AG layer
         n_OLED = layer_Structure['n_OLED']
         z_OLED = layer_Structure['z_OLED']
@@ -253,6 +254,7 @@ class SparkleSimulator:
         n_AG = layer_Structure['n_AG']
         z_AG = layer_Structure['z_AG']
         self.prop2AG( n_OLED, z_OLED, n_OCA, z_OCA, n_AG, z_AG)
+        # self.plot_intensity(bd.abs(self.E) ** 2, square_root=False, units=um, text='Intensity before AG etch layer')
 
         width = AGetch_params['width']
         height = AGetch_params['height']
@@ -330,8 +332,8 @@ class SparkleSimulator:
         # # # 1. 空间域 box 滤波（关键改动）
         # # ==============================
         # # box 尺寸（以像素为单位）
-        Nx_box = int(round(self.pixelperiodx / self.dx))*1
-        Ny_box = int(round(self.pixelperiody / self.dy))*1
+        Nx_box = int(round(self.pixelperiodx / self.dx))
+        Ny_box = int(round(self.pixelperiody / self.dy))
         #
         # if Nx_box % 2 == 0:
         #     Nx_box += 1
@@ -341,7 +343,7 @@ class SparkleSimulator:
         kernel = bd.ones((Ny_box, Nx_box)) / (Nx_box * Ny_box)
 
         # 边界采用 reflect，避免周期伪影
-        I_sparkle_SIM = scipy.signal.convolve2d(
+        I_sparkle_SIM0 = scipy.signal.convolve2d(
             I, kernel, mode="same", boundary="symm"
         )
         #
@@ -354,18 +356,21 @@ class SparkleSimulator:
         # )
 
         # ##  1. 空间域高斯滤波（关键改动）
-        # # ==============================
+        # # # ==============================
         # # sigma_x, sigma_y 以像素为单位
-        # sigma_x = self.pixelperiodx / (2 * self.dx)  # 一半像素周期
-        # sigma_y = self.pixelperiody / (2 * self.dy)
+        # sigma_x = self.pixelperiodx / (2.5 * self.dx)  # 一半像素周期
+        # sigma_y = self.pixelperiody / (2.5 * self.dy)
         #
-        # I_sparkle_SIM = gaussian_filter(
+        # I_low = gaussian_filter(
         #     I,
         #     sigma=(sigma_y, sigma_x),
         #     mode='reflect'  # 边缘镜像平滑
         # )
+        # I_sparkle_SIM = I_low
         # self.plot_intensity(I_sparkle_SIM, square_root=False, units=um,text="I_sparkle_SIM (Gaussian filtered, spatial domain)")
-
+        #
+        # crop = int(3 * max(sigma_x, sigma_y))  # 经验值
+        # I_sparkle_SIM = I_sparkle_SIM[crop:-crop, crop:-crop]
 
         # # ==============================
         # # 2. FFT 仅用于诊断（可选）
@@ -387,12 +392,30 @@ class SparkleSimulator:
         #     text="Spectrum after box filtering"
         # )
 
+        # 再进行一次高斯滤波
+        # # ==============================
+        # sigma_x, sigma_y 以像素为单位
+        sigma_x = self.pixelperiodx / (2 * self.dx)  # 一半像素周期
+        sigma_y = self.pixelperiody / (2 * self.dy)
+
+        I_sparkle_SIM = gaussian_filter(
+            I_sparkle_SIM0,
+            sigma=(sigma_y, sigma_x),
+            mode='reflect'  # 边缘镜像平滑
+        )
+        #
+        # self.plot_intensity(I_sparkle_SIM, square_root=False, units=um,
+        #                     text="I_sparkle_SIM (Gaussian filtered, spatial domain)",colormap = 'gray')
+
+        crop = int(2 * max(sigma_x, sigma_y,Nx_box,Ny_box))  # 经验值
+        I_sparkle_SIM = I_sparkle_SIM[crop:-crop, crop:-crop]
+
         # ==============================
         # 3. Sparkle Value
         # ==============================
-        print("Sparkle enerage(SIM filtered): ", bd.sum(I_sparkle_SIM) * self.dx * self.dy)
+        # print("Sparkle enerage(SIM filtered): ", bd.sum(I_sparkle_SIM) * self.dx * self.dy)
         ## 截掉周围一个像素区域
-        I_sparkle_SIM = I_sparkle_SIM[Nx_box:-Nx_box, Ny_box:-Ny_box]
+        # I_sparkle_SIM = I_sparkle_SIM[Nx_box:-Nx_box, Ny_box:-Ny_box]
         self.plot_intensity(I_sparkle_SIM, square_root=False, units=um, text="I_sparkle_SIM (filtered & cropped)",colormap = 'gray')
         mean_I = bd.mean(I_sparkle_SIM)
         std_I = bd.std(I_sparkle_SIM)
@@ -425,7 +448,6 @@ class SparkleSimulator:
     #
     #
 
-    #
 
     def DIM(self, Iorigin1):
         """
@@ -529,6 +551,14 @@ class SparkleSimulator:
         I_visual[0] = 0.0
         ## gamma视觉响应
         # I_visual = I_visual**0.4
+
+        # #
+        # mean_I = bd.mean(I_visual)
+        # std_I = bd.std(I_visual)
+        #
+        #
+        # SparkValue = std_I / mean_I
+        # print("111111Sparkle Value (SIM method): ", SparkValue)
 
         return I_visual
 

@@ -26,7 +26,7 @@ class RGBarray(LightSource):
         self.spectrum = spectrum
 
 
-    def get_E1(self, E2, xx, yy, λ):
+    def get_E1(self, E2, xx, yy, λ,div=1, effective_area=1):
         """
         Returns the electric field distribution defined by the pixel array.
 
@@ -76,11 +76,11 @@ class RGBarray(LightSource):
         return field * E
 
 
-    def get_E(self, E2, xx, yy, λ):
+    def get_E(self, E2, xx, yy, λ,div=1, effective_area=1):
         """
         Returns the electric field distribution defined by the pixel array.
         """
-
+        effective_area_ = effective_area*bd.max(bd.abs(xx))*2
         # =========================
         # 1. 强度 → 振幅
         # =========================
@@ -131,17 +131,21 @@ class RGBarray(LightSource):
         xc = (x_min + x_max) / 2.0
         yc = (y_min + y_max) / 2.0
 
-        sigma_x = (x_max - x_min) / 3.0
-        sigma_y = (y_max - y_min) / 3.0
+        sigma_x = (x_max - x_min) / 1.7
+        sigma_y = (y_max - y_min) / 1.7
 
         gaussian = bd.exp(
-            -((x_local - xc) ** 2 / (2 * sigma_x ** 2) +
-              (y_local - yc) ** 2 / (2 * sigma_y ** 2))
-        )
+            -((x_local - xc) ** 2 / (1 * sigma_x ** 2) +
+              (y_local - yc) ** 2 / (1 * sigma_y ** 2))
+        ) * bd.exp(1j*2*bd.pi*bd.sqrt((x_local-xc)**2+(y_local-yc)**2+(15*um/bd.tan(div*bd.pi/180))**2)/λ)
 
         # =========================
         # 6. 最终电场
         # =========================
-        field = bd.where(mask, E * gaussian, 0.0)
+
+        mask1 = (xx >= -effective_area_/2) & (xx <= effective_area_/2) & (yy >= -effective_area_/2) & (yy <= effective_area_/2)
+        field = bd.where(mask1, E * gaussian, 0.0)
+
+
 
         return field
