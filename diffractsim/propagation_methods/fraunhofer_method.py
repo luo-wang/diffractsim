@@ -1,6 +1,6 @@
 import numpy as np
 from ..util.backend_functions import backend as bd
-
+from ..util.constants import *
 
 def fraunhofer_method(simulation, E, z, λ):
     global bd
@@ -49,6 +49,64 @@ def fraunhofer_method(simulation, E, z, λ):
     h = 1/ wvln/z
     u = h  * bd.fft.ifftshift(bd.fft.fft2(bd.fft.fftshift(E)))
 
+    lambdamin = simulation.λ_list_samples[0]*nm
+    # Compute x, y, fx, fy
+    L2min = lambdamin * z / ps
+
+    x2min, y2min = bd.meshgrid(
+        bd.linspace(-L2min / 2, L2min / 2, Wimg, device=E.device),
+        bd.linspace(-L2min / 2, L2min / 2, Himg, device=E.device),
+        indexing="xy",
+    )
+
+    import numpy as np
+    from scipy.interpolate import RegularGridInterpolator
+
+    # ---------------------------------------
+    # 原始坐标
+    # ---------------------------------------
+    x = x2[0, :]  # shape: [Wimg]
+    y = y2[:, 0]  # shape: [Himg]
+
+    # 原始复场 u : [Himg, Wimg]
+
+    # ---------------------------------------
+    # 构造插值器
+    # 注意:
+    # RegularGridInterpolator 的坐标顺序是 (y, x)
+    # ---------------------------------------
+    interp_real = RegularGridInterpolator(
+        (y, x),
+        np.real(u),
+        method='linear',
+        bounds_error=False,
+        fill_value=0
+    )
+
+    interp_imag = RegularGridInterpolator(
+        (y, x),
+        np.imag(u),
+        method='linear',
+        bounds_error=False,
+        fill_value=0
+    )
+
+    # ---------------------------------------
+    # 目标坐标
+    # ---------------------------------------
+    points = np.stack(
+        [y2min.ravel(), x2min.ravel()],
+        axis=-1
+    )  # [Himg*Wimg, 2]
+
+    # ---------------------------------------
+    # 插值
+    # ---------------------------------------
+    u_real_interp = interp_real(points).reshape(Himg, Wimg)
+    u_imag_interp = interp_imag(points).reshape(Himg, Wimg)
+
+    # 恢复复场
+    u_interp = u_real_interp + 1j * u_imag_interp
 
     # simulation.extent_x = L2
     # simulation.extent_y = L2
@@ -60,4 +118,4 @@ def fraunhofer_method(simulation, E, z, λ):
     # simulation.y = simulation.dy * (bd.arange(Himg) - Himg // 2)
     # simulation.xx, simulation.yy = bd.meshgrid(simulation.x, simulation.y)
 
-    return u
+    return u_interp

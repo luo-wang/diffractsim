@@ -56,14 +56,19 @@ def plot_colors(self, rgb, figsize=(6, 6), xlim=None, ylim=None, text = None, un
     else: 
         ax.set_title(text)
 
+    # im = ax.imshow(
+    #     (rgb),
+    #     extent=[
+    #         float(self.x[0] - self.dx/2) / units,
+    #         float(self.x[-1] + self.dx/2) / units,
+    #         float(self.y[0] - self.dy/2)/ units,
+    #         float(self.y[-1] + self.dy/2) / units,
+    #     ],
+    #     interpolation="spline36", origin = "lower"
+    # )
+
     im = ax.imshow(
         (rgb),
-        extent=[
-            float(self.x[0] - self.dx/2) / units,
-            float(self.x[-1] + self.dx/2) / units,
-            float(self.y[0] - self.dy/2)/ units,
-            float(self.y[-1] + self.dy/2) / units,
-        ],
         interpolation="spline36", origin = "lower"
     )
     plt.show()

@@ -79,3 +79,43 @@ class ColorpatternSimulator:
             )
         )
         print('colorpattern: ', colorpattern)
+
+    @staticmethod
+    def jetimg2sag(image_path, v_min, v_max):
+        import numpy as np
+        from PIL import Image
+        import matplotlib.pyplot as plt
+        from scipy.spatial import cKDTree
+
+        N_COLORS = 256
+
+        # 1. 读图
+        img = Image.open(image_path).convert("RGB")
+        img = np.asarray(img, dtype=np.float32) / 255.0
+
+        img = img[76:-76, 104:-104, :]  # 裁剪掉边缘的34像素
+
+        H, W, _ = img.shape
+        print(f"Etch Image loaded: {H} x {W}")
+
+        # 2. jet colormap
+        jet = plt.get_cmap("jet", N_COLORS)
+        jet_rgb = jet(np.linspace(0.0, 1.0, N_COLORS))[:, :3]
+
+        # 3. 构建KDTree
+        tree = cKDTree(jet_rgb)
+
+        # 4. 查询最近颜色
+        img_flat = img.reshape(-1, 3)
+        _, idx = tree.query(img_flat, k=1)
+
+        # 5. 归一化
+        value_norm = idx.astype(np.float32) / (N_COLORS - 1)
+        value_norm = (value_norm - value_norm.min()) / (value_norm.max() - value_norm.min())
+        value_norm = value_norm.reshape(H, W)
+
+        # 6. 映射物理量
+        value = v_min + value_norm * (v_max - v_min)
+
+        return value
+
