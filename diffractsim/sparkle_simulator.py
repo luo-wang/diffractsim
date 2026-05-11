@@ -328,6 +328,9 @@ class SparkleSimulator:
 
         I = self.Iorigin
 
+        # ## 添加背景随机噪声
+        I = I + 0.5*bd.random.normal(size=I.shape)  # 随机噪声
+
         # # ==============================
         # # # 1. 空间域 box 滤波（关键改动）
         # # ==============================
@@ -392,6 +395,7 @@ class SparkleSimulator:
         #     text="Spectrum after box filtering"
         # )
 
+        # self.plot_intensity(I_sparkle_SIM0, square_root=False, units=um, text="I_sparkle_SIM (Box filtered)",colormap = 'gray')
         # 再进行一次高斯滤波
         # # ==============================
         # sigma_x, sigma_y 以像素为单位
@@ -405,7 +409,7 @@ class SparkleSimulator:
         )
         #
         # self.plot_intensity(I_sparkle_SIM, square_root=False, units=um,
-        #                     text="I_sparkle_SIM (Gaussian filtered, spatial domain)",colormap = 'gray')
+        #                     text="I_sparkle_SIM (Box & Gaussian filtered)",colormap = 'gray')
 
         crop = int(2 * max(sigma_x, sigma_y,Nx_box,Ny_box))  # 经验值
         I_sparkle_SIM = I_sparkle_SIM[crop:-crop, crop:-crop]

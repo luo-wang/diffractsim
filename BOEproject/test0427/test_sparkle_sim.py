@@ -57,7 +57,7 @@ AGetchparams = {
 sim = SparkleSimulator(wavelength=500 * nm, extent_x=1000*um, extent_y=1000*um,Nx=1024*1, Ny=1024*1 )
 
 
-Isparkle = sim.get_Sparkle_origin(spectrum='G', layer_Structure=layerstructure, AGetch_params=AGetchparams,intensity=10000, div = 0.001, effective_area = 1 )
+Isparkle = sim.get_Sparkle_origin(spectrum='G', layer_Structure=layerstructure, AGetch_params=AGetchparams,intensity=5, div = 0.001, effective_area = 1 )
 sim.plot_intensity(Isparkle, square_root= False, units = um, text = 'Sparkle Pattern at RGB layer(unfilter)',colormap = 'gray')
 
 # #####################Visual photo###################
