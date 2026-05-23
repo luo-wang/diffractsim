@@ -41,7 +41,7 @@ class SparkleSimulator:
         self.z = 0
         self.cs = cf.ColourSystem(clip_method=0)
 
-    def add_RGB(self, spectrum = 'G', intensity=1.0 * W / m**2,div=1,effective_area=1):
+    def add_RGB(self, spectrum = 'G', intensity=1.0 * W / m**2,div=1,effective_area=1,Module = 13.2):
         """
         add RGB light source
         Parameters
@@ -53,10 +53,16 @@ class SparkleSimulator:
         Returns
         -------
         """
-        rgbarray = RGBarray(spectrum=spectrum)
+        rgbarray = RGBarray(spectrum=spectrum, Module=Module)
         self.pixelperiodx = rgbarray.x_period
         self.pixelperiody = rgbarray.y_period
-        self.E = rgbarray.get_E(intensity, self.xx, self.yy, self.wavelength,div, effective_area)
+        if Module == 13.2:
+            self.E = rgbarray.get_E(intensity, self.xx, self.yy, self.wavelength,div, effective_area)
+        if Module == 8.8:
+            self.E = rgbarray.get_E(intensity, self.xx, self.yy, self.wavelength,div, effective_area)
+        if Module == 13.8:
+            self.E = rgbarray.get_E1(intensity, self.xx, self.yy, self.wavelength,div, effective_area)
+
         I = bd.abs(self.E) ** 2
         print("Initial enerage: ", bd.sum(I)* self.dx * self.dy)
         self.plot_intensity(I, square_root=False, units=um, text='Intensity at RGB layer',colormap = 'gray')
@@ -226,7 +232,7 @@ class SparkleSimulator:
 
 
 
-    def get_Sparkle_origin(self, spectrum, layer_Structure, AGetch_params, intensity = 1.0 * W / m**2, div = 45, effective_area = 1):
+    def get_Sparkle_origin(self, spectrum, layer_Structure, AGetch_params, intensity = 1, div = 0.001, effective_area = 1,Module = 13.2):
         """
         get the origin sparkle pattern through inverse propagation to the RGB layer
         Parameters
@@ -244,8 +250,8 @@ class SparkleSimulator:
         -------
 
         """
-
-        self.add_RGB(spectrum, intensity,div,effective_area)
+        self.intensity = intensity
+        self.add_RGB(spectrum, intensity,div,effective_area,Module=Module)
         ## propagate to AG layer
         n_OLED = layer_Structure['n_OLED']
         z_OLED = layer_Structure['z_OLED']
@@ -271,53 +277,81 @@ class SparkleSimulator:
         # print("Sparkle origin enerage(unfiltered): ", bd.sum(self.Iorigin)* self.dx * self.dy)
         return self.Iorigin
 
-    #
-    # def SIM(self, ):
-    #     """
-    #     SIM method: simulate the sparkle pattern through the entire structure
-    #     Returns
-    #     -------
-    #
-    #     """
-    #     # compute I spectrum
-    #     fft_c = bd.fft.fft2(self.Iorigin)
-    #     c = bd.fft.fftshift(fft_c)
-    #     self.plot_intensity(bd.abs(c), square_root=False, units=1/um,text='spectrum of Iorigin')
-    #
-    #     fx = bd.fft.fftshift(bd.fft.fftfreq(self.Nx, d=self.dx))
-    #     fy = bd.fft.fftshift(bd.fft.fftfreq(self.Ny, d=self.dy))
-    #     fxx, fyy = bd.meshgrid(fx, fy)
-    #     # filter design
-    #     px = self.pixelperiodx
-    #     py = self.pixelperiody
-    #
-    #     # 矩形对应滤波器
-    #     filterx = bd.sin(bd.pi * fxx * px) / (bd.pi * fxx * px)
-    #     filterx[bd.isnan(filterx)] = 1.0
-    #     filtery = bd.sin(bd.pi * fyy * py) / (bd.pi * fyy * py)
-    #     filtery[bd.isnan(filtery)] = 1.0
-    #     filter = filterx * filtery
-    #     filter_ifft = bd.fft.ifftshift(bd.fft.ifft2((filter)))
-    #     self.plot_intensity(bd.abs(filter_ifft), square_root=False, units=um,text='Point spread function of filter')
-    #
-    #     # 论文滤波器
-    #     # filter = bd.sin(bd.pi * fxx * px) / (bd.sin(bd.pi * fxx)) * bd.sin(bd.pi * fyy * py) / (bd.sin(bd.pi * fyy)) /px/py
-    #     self.plot_intensity(bd.abs(filter), square_root=False, units=1/um,text='intensity of filter')
-    #
-    #     # # 卷积核ft滤波
-    #     # filter = bd.fft.fftshift(bd.fft.fft2(self.mask))
-    #
-    #     c1 = c * filter
-    #     self.plot_intensity(bd.abs(c1), square_root=False, units=1/um,text='Filtered spectrum of Iorigin')
-    #
-    #     I_sparkle_SIM = bd.fft.ifft2(bd.fft.ifftshift(c1))
-    #     self.plot_intensity(bd.real(I_sparkle_SIM), square_root=False, units=um,text="I_sparkle_SIM")
-    #
-    #
-    #
-    #     self.SparkValue = bd.std(bd.real(I_sparkle_SIM))/bd.mean(bd.real(I_sparkle_SIM))
-    #     print("Sparkle Value (SIM method): ", self.SparkValue)
-    #     return
+
+    def SIM0(self, ):
+        """
+        SIM method: simulate the sparkle pattern through the entire structure
+        Returns
+        -------
+
+        """
+        # compute I spectrum
+        fft_c = bd.fft.fft2(self.Iorigin)
+        c = bd.fft.fftshift(fft_c)
+        self.plot_intensity(bd.abs(c), square_root=False, units=1/um,text='spectrum of Iorigin')
+
+        fx = bd.fft.fftshift(bd.fft.fftfreq(self.Nx, d=self.dx))
+        fy = bd.fft.fftshift(bd.fft.fftfreq(self.Ny, d=self.dy))
+        fxx, fyy = bd.meshgrid(fx, fy)
+        # filter design
+        px = self.pixelperiodx
+        py = self.pixelperiody
+
+        # 矩形对应滤波器
+        filterx = bd.sin(bd.pi * fxx * px) / (bd.pi * fxx * px)
+        filterx[bd.isnan(filterx)] = 1.0
+        filtery = bd.sin(bd.pi * fyy * py) / (bd.pi * fyy * py)
+        filtery[bd.isnan(filtery)] = 1.0
+        filter = filterx * filtery
+        # filter_ifft = bd.fft.ifftshift(bd.fft.ifft2((filter)))
+        # self.plot_intensity(bd.abs(filter_ifft), square_root=False, units=um,text='Point spread function of filter')
+
+        # 论文滤波器
+        # filter = bd.sin(bd.pi * fxx * px) / (bd.sin(bd.pi * fxx)) * bd.sin(bd.pi * fyy * py) / (bd.sin(bd.pi * fyy)) /px/py
+        self.plot_intensity(bd.abs(filter), square_root=False, units=1/um,text='intensity of filter')
+
+        # # 卷积核ft滤波
+        # filter = bd.fft.fftshift(bd.fft.fft2(self.mask))
+
+        c1 = c * filter
+        self.plot_intensity(bd.abs(c1), square_root=False, units=1/um,text='Filtered spectrum of Iorigin')
+
+        I_sparkle_SIM = bd.fft.ifft2(bd.fft.ifftshift(c1))
+        I_sparkle_SIM = bd.abs(I_sparkle_SIM)
+        self.plot_intensity(bd.real(I_sparkle_SIM), square_root=False, units=um,text="I_sparkle_SIM")
+        # 再进行一次高斯滤波
+        # # ==============================
+        # sigma_x, sigma_y 以像素为单位
+        sigma_x = self.pixelperiodx / (2.5 * self.dx)  # 一半像素周期
+        sigma_y = self.pixelperiody / (2.5 * self.dy)
+
+        I_sparkle_SIM = gaussian_filter(
+            I_sparkle_SIM,
+            sigma=(sigma_y, sigma_x),
+            mode='reflect'  # 边缘镜像平滑
+        )
+        #
+        # self.plot_intensity(I_sparkle_SIM, square_root=False, units=um,
+        #                     text="I_sparkle_SIM (Box & Gaussian filtered)",colormap = 'gray')
+
+        crop = int(2 * max(sigma_x, sigma_y))  # 经验值
+        I_sparkle_SIM = I_sparkle_SIM[crop:-crop, crop:-crop]
+
+        # ==============================
+        # 3. Sparkle Value
+        # ==============================
+        # print("Sparkle enerage(SIM filtered): ", bd.sum(I_sparkle_SIM) * self.dx * self.dy)
+        ## 截掉周围一个像素区域
+        # I_sparkle_SIM = I_sparkle_SIM[Nx_box:-Nx_box, Ny_box:-Ny_box]
+        self.plot_intensity(I_sparkle_SIM, square_root=False, units=um, text="I_sparkle_SIM (filtered & cropped)",colormap = 'gray')
+        mean_I = bd.mean(I_sparkle_SIM)
+        std_I = bd.std(I_sparkle_SIM)
+
+
+        self.SparkValue = std_I / mean_I
+        print("Sparkle Value (SIM method): ", self.SparkValue)
+
+        return
 
     def SIM(self):
         """
@@ -329,7 +363,9 @@ class SparkleSimulator:
         I = self.Iorigin
 
         # ## 添加背景随机噪声
-        I = I + 0.5*bd.random.normal(size=I.shape)  # 随机噪声
+        bd.random.seed(42)
+        cof = (5 - self.intensity)*0.2
+        I = I + I * cof*bd.random.normal(size=I.shape)  # 随机噪声
 
         # # ==============================
         # # # 1. 空间域 box 滤波（关键改动）
@@ -350,13 +386,13 @@ class SparkleSimulator:
             I, kernel, mode="same", boundary="symm"
         )
         #
-        # self.plot_intensity(
-        #     I_sparkle_SIM,
-        #     square_root=False,
-        #     units=um,
-        #     text="I_sparkle_SIM (box filtered, spatial domain)",
-        #     colormap = 'gray',
-        # )
+        self.plot_intensity(
+            I_sparkle_SIM0,
+            square_root=False,
+            units=um,
+            text="I_sparkle_SIM (box filtered, spatial domain)",
+            colormap = 'gray',
+        )
 
         # ##  1. 空间域高斯滤波（关键改动）
         # # # ==============================
@@ -399,8 +435,8 @@ class SparkleSimulator:
         # 再进行一次高斯滤波
         # # ==============================
         # sigma_x, sigma_y 以像素为单位
-        sigma_x = self.pixelperiodx / (2 * self.dx)  # 一半像素周期
-        sigma_y = self.pixelperiody / (2 * self.dy)
+        sigma_x = self.pixelperiodx / (2.5 * self.dx)  # 一半像素周期
+        sigma_y = self.pixelperiody / (2.5 * self.dy)
 
         I_sparkle_SIM = gaussian_filter(
             I_sparkle_SIM0,
