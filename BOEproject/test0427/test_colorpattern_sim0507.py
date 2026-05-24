@@ -36,9 +36,12 @@ from diffractsim.colorpattern_simulator import ColorpatternSimulator
 # sag = ColorpatternSimulator.jetimg2sag(image_path = image_path, v_min=-0.357*um, v_max=0.772*um)
 # image_path = r"F:\PHD\GitFiles\diffractsim\BOEproject\colorpattern0507\image13.png"  # 你的图片路径
 # sag = ColorpatternSimulator.jetimg2sag(image_path = image_path, v_min=-0.886*um, v_max=1.17*um)
-image_path = r"F:\PHD\GitFiles\diffractsim\BOEproject\colorpattern0507\image14.png"  # 你的图片路径
-sag = ColorpatternSimulator.jetimg2sag(image_path = image_path, v_min=-0.708*um, v_max=1.003*um)
-
+# image_path = r"F:\PHD\GitFiles\diffractsim\BOEproject\colorpattern0507\image14.png"  # 你的图片路径
+# sag = ColorpatternSimulator.jetimg2sag(image_path = image_path, v_min=-0.708*um, v_max=1.003*um)
+image_path = r"F:\PHD\GitFiles\diffractsim\BOEproject\colorpattern0507\image_18_1.png"  # 你的图片路径
+sag = ColorpatternSimulator.jetimg2sag(image_path = image_path, v_min=-0.796*um, v_max=1.311*um)
+# image_path = r"F:\PHD\GitFiles\diffractsim\BOEproject\colorpattern0507\image_18_2.png"  # 你的图片路径
+# sag = ColorpatternSimulator.jetimg2sag(image_path = image_path, v_min=-0.783*um, v_max=1.249*um)
 
 
 
@@ -57,10 +60,10 @@ AGetchparams = {
 # ##########################colorpattern simulate##############
 #
 colorsim = ColorpatternSimulator(spectrum= cf.illuminant_d65,
-    extent_x=0.3 * mm,
-    extent_y=0.3 * mm,
-    Nx=256*1,
-    Ny=256*1
+    extent_x=0.4 * mm,
+    extent_y=0.4 * mm,
+    Nx=256*2,
+    Ny=256*2
     )
 colorsim.DoSimulate(30*cm,AGetchparams)
 

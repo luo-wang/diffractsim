@@ -41,7 +41,7 @@ class AG_Reflect(DOE):
         # 恢复为与 xx 和 yy 相同的形状
         interpolated_sag = interpolated_sag.reshape(xx.shape)
 
-        phase_shift = -2 * interpolated_sag *(self.n) * 2 * bd.pi / λ
+        phase_shift = -1 * interpolated_sag *(self.n) * 2 * bd.pi / λ
         tt = t * bd.exp(1j * phase_shift)
         # self.t = tt
         return tt
