@@ -50,7 +50,7 @@ AGetchparams = {
 sim = SparkleSimulator(wavelength=500 * nm, extent_x=1000*um, extent_y=1000*um,Nx=512*1, Ny=512*1 )######8.8
 
 
-Isparkle = sim.get_Sparkle_origin(spectrum='G', layer_Structure=layerstructure, AGetch_params=AGetchparams,intensity=5, div = 0.001, Module = 8.8 )
+Isparkle = sim.get_Sparkle_origin(spectrum='G', layer_Structure=layerstructure, AGetch_params=AGetchparams,intensity=5, div = 0.001, Module = 13.2 )
 sim.plot_intensity(Isparkle, square_root= False, units = um, text = 'Sparkle Pattern at RGB layer(unfilter)',colormap = 'gray')
 
 # # #####################Visual photo###################
@@ -59,7 +59,7 @@ sim.plot_intensity(Isparkle, square_root= False, units = um, text = 'Sparkle Pat
 #
 # #
 # # #################### SIM method ######################
-sim.SIM()
+sim.SIM(method = "A")#  A:对应黄光AG B:对应普通蒙砂刻蚀AG
 # ##
 # # #################### DIM test ########################
 # AGetchparams['xyorigin'] = [100*um, 10*um]

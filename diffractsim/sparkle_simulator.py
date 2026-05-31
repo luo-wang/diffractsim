@@ -353,7 +353,7 @@ class SparkleSimulator:
 
         return
 
-    def SIM(self):
+    def SIM(self,method = None):
         """
         SIM method (improved):
         - Box filtering in spatial domain
@@ -434,9 +434,16 @@ class SparkleSimulator:
         # self.plot_intensity(I_sparkle_SIM0, square_root=False, units=um, text="I_sparkle_SIM (Box filtered)",colormap = 'gray')
         # 再进行一次高斯滤波
         # # ==============================
+
+        if method == None:
+            raise ValueError("Please specify the SIM method: 'A' for yellow light etch, 'B' for normal sandblasting etch")
         # sigma_x, sigma_y 以像素为单位
-        sigma_x = self.pixelperiodx / (2.5 * self.dx)  # 一半像素周期
-        sigma_y = self.pixelperiody / (2.5 * self.dy)
+        elif method == "A":
+            sigma_x = self.pixelperiodx / (2.5 * self.dx)  # 一半像素周期
+            sigma_y = self.pixelperiody / (2.5 * self.dy)
+        elif method == "B":
+            sigma_x = self.pixelperiodx / (5 * self.dx)  # 一半像素周期
+            sigma_y = self.pixelperiody / (5 * self.dy)
 
         I_sparkle_SIM = gaussian_filter(
             I_sparkle_SIM0,
