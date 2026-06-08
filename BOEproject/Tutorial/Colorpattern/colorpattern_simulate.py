@@ -71,6 +71,7 @@ colorsim = ColorpatternSimulator(spectrum= cf.illuminant_d65,
     Nx=128*1,
     Ny=128*1
     )
+##白光彩纹模拟结果
 colorsim.DoSimulate(30*cm,AGetchparams)
-
+##单波长衍射结果
 colorsim.DoSimulate2(30*cm,AGetchparams)
