@@ -468,10 +468,10 @@ class SparkleSimulator:
         std_I = bd.std(I_sparkle_SIM)
 
 
-        self.SparkValue = std_I / mean_I
+        self.SparkValue = std_I / mean_I *100
         print("Sparkle Value (SIM method): ", self.SparkValue)
 
-        return None
+        return self.SparkValue
 
 
 
