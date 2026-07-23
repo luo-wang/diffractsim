@@ -4,7 +4,7 @@ colorpattern_simulator.py
 import matplotlib.pyplot as plt
 from typing import Any
 import scipy
-from jax.experimental.array_api import linspace
+# from jax.experimental.array_api import linspace
 from numpy import floating
 from scipy.ndimage import gaussian_filter
 
